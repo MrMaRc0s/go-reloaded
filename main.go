@@ -24,7 +24,6 @@ func main() {
 	}
 	var Words []string
 	Words = SplitWhiteSpaces(string(content))
-	fmt.Println(Words[2])
 
 	for i := 0; i < len(Words); i++ {
 		if Words[i] == "(cap)" {
@@ -42,6 +41,12 @@ func main() {
 		} else if Words[i] == "(hex)" {
 			Words[i-1] = HexConv((Words[i-1]))
 			Words[i] = ""
+		} else if Words[i] == "a" || Words[i] == "A" {
+			if i < len(Words)-1 {
+				if checkifvowel(Words[i+1]) {
+					Words[i] = Words[i] + "n"
+				}
+			}
 		}
 	}
 	fmt.Println(Words)
@@ -143,4 +148,9 @@ func BinConv(s string) string {
 func HexConv(s string) string {
 	dec, _ := strconv.ParseInt(s, 16, 64)
 	return strconv.FormatInt(dec, 10)
+}
+
+func checkifvowel(s string) bool {
+	firstrune := []rune((s))
+	return firstrune[0] == 'a' || firstrune[0] == 'e' || firstrune[0] == 'o' || firstrune[0] == 'i' || firstrune[0] == 'u' || firstrune[0] == 'h'
 }
