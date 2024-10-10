@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -47,9 +48,12 @@ func main() {
 					Words[i] = Words[i] + "n"
 				}
 			}
+		} else if Words[i] == "'" {
 		}
 	}
-	fmt.Println(Words)
+	result := strings.Join(Words, " ")
+	fmt.Println(result)
+	fmt.Println(Words[len(Words)-1])
 }
 
 func IsUpper(s string) bool {
