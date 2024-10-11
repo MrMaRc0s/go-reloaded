@@ -4,38 +4,81 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("File name missing")
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: go run <program.go> <input_file> <output_file>")
 		return
 	}
-	if len(os.Args) > 2 {
+	if len(os.Args) > 3 {
 		fmt.Println("Too many arguments")
 		return
 	}
-	filename := os.Args[1]
-	content, err := ioutil.ReadFile(filename)
+	inputFilename := os.Args[1]
+	outputFilename := os.Args[2]
+
+	content, err := ioutil.ReadFile(inputFilename)
 	if err != nil {
-		fmt.Println("Error reading file")
+		fmt.Println("Error reading input file")
 		return
 	}
+
 	var Words []string
+	var n int
 	Words = SplitWhiteSpaces(string(content))
 
 	for i := 0; i < len(Words); i++ {
-		if Words[i] == "(cap)" {
-			Words[i-1] = Capitalize(Words[i-1])
+		if i+1 <= len(Words)-1 {
+			Runes := []rune((Words[i+1]))
+			if Runes[len(Runes)-1] == ')' {
+				var str string = string(Runes[:len(Runes)-1])
+				x, _ := strconv.Atoi(str)
+				n = x
+			}
+		}
+		if Words[i] == "(cap)" || Words[i] == "(cap," {
+			for loop := 0; loop <= n; loop++ {
+				if loop <= i {
+					Words[i-loop] = Capitalize(Words[i-loop])
+				}
+			}
+			if n == 0 {
+				Words[i-1] = Capitalize(Words[i-1])
+			}
 			Words[i] = ""
-		} else if Words[i] == "(up)" {
-			Words[i-1] = ToUpper(Words[i-1])
+			if n > 0 {
+				Words[i+1] = ""
+			}
+		} else if Words[i] == "(up)" || Words[i] == "(up," {
+			for loop := 0; loop <= n; loop++ {
+				if loop <= i {
+					Words[i-loop] = ToUpper(Words[i-loop])
+				}
+			}
+			if n == 0 {
+				Words[i-1] = ToUpper(Words[i-1])
+			}
 			Words[i] = ""
-		} else if Words[i] == "(low)" {
-			Words[i-1] = ToLower(Words[i-1])
+			if n > 0 {
+				Words[i+1] = ""
+			}
+		} else if Words[i] == "(low)" || Words[i] == "(low," {
+			for loop := 0; loop <= n; loop++ {
+				if loop <= i {
+					Words[i-loop] = ToLower(Words[i-loop])
+				}
+			}
+			if n == 0 {
+				Words[i-1] = ToLower(Words[i-1])
+			}
 			Words[i] = ""
+			if n > 0 {
+				Words[i+1] = ""
+			}
 		} else if Words[i] == "(bin)" {
 			Words[i-1] = BinConv((Words[i-1]))
 			Words[i] = ""
@@ -48,12 +91,54 @@ func main() {
 					Words[i] = Words[i] + "n"
 				}
 			}
-		} else if Words[i] == "'" {
 		}
 	}
-	result := strings.Join(Words, " ")
-	fmt.Println(result)
-	fmt.Println(Words[len(Words)-1])
+
+	finalContent := strings.Join(Words, " ")
+	finalContent = formatPunctuation(finalContent)
+	finalContent = formatQuotes(finalContent)
+	finalContent = trimExtraSpaces(finalContent)
+
+	// Write output to the specified file
+	err = ioutil.WriteFile(outputFilename, []byte(finalContent), 0o644)
+	if err != nil {
+		fmt.Println("Error writing to output file")
+		return
+	} else {
+		fmt.Println("Writing completed")
+	}
+}
+
+func formatPunctuation(input string) string {
+	// Remove spaces before punctuation and ensure punctuation is adjacent to the previous word
+	re := regexp.MustCompile(`\s*([.,!?;:]+)`)
+	result := re.ReplaceAllString(input, "$1")
+
+	// Ensure exactly one space follows punctuation, if not at the end of the string
+	result += " " // Add a space to the end to handle the last punctuation correctly
+	re2 := regexp.MustCompile(`([.,!?;:]+)([^\s])`)
+	result = re2.ReplaceAllString(result, "$1 $2")
+
+	// Remove any extra spaces after punctuation marks
+	re3 := regexp.MustCompile(`([.,!?;:]+)\s+`)
+	result = re3.ReplaceAllString(result, "$1 ")
+
+	return strings.TrimSpace(result) // Trim any leading/trailing spaces
+}
+
+func trimExtraSpaces(input string) string {
+	re := regexp.MustCompile(`\s+`)
+	result := re.ReplaceAllString(input, " ")
+	return strings.TrimSpace(result)
+}
+
+func formatQuotes(input string) string {
+	re := regexp.MustCompile(`'([^']*)'`)
+	result := re.ReplaceAllStringFunc(input, func(match string) string {
+		cleaned := strings.TrimSpace(match[1 : len(match)-1])
+		return "'" + cleaned + "'"
+	})
+	return result
 }
 
 func IsUpper(s string) bool {
